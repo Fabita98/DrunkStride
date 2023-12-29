@@ -338,9 +338,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bbe359dc59b304944b628675ce0a5963, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 1
-  player: {fileID: 719028423}
-  surface: {fileID: 1868884070}
 --- !u!143 &719028429
 CharacterController:
   m_ObjectHideFlags: 0
@@ -476,7 +473,7 @@ GameObject:
   m_TagString: Floor
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 40
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!64 &1868884071
 MeshCollider:
