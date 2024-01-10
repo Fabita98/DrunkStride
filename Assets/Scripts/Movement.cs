@@ -23,57 +23,58 @@ Vincoli
 
 public class Movement : MonoBehaviour
 {
-    [Header(" Agent ")]
-    [SerializeField] private float speed = 1f;
+    [Header("Agent")]
+    [SerializeField] private float angularSpeed = 1f;
     private Vector3 deltaMovement;
+    private Vector3 dir;
+    private CapsuleCollider capsuleCollider;
     private CharacterController chController;
     [NonSerialized] public bool centerFound;
 
-    [Header(" Events ")]
-    private bool isGrounded;
-    public int changeTimerCounter = 0;
+    [Header("Events")]
+    [HideInInspector] public int changeTimerCounter = 0;
     [HideInInspector] public float changeInterval;
 
-    [Header(" Circumference ")]
-    private float angle = 0f;
+    [Header("Circumference")]
     private Vector3 center, oldCircleCenter, currentCenter;
-    public float radius;
+    [HideInInspector] public float radius;
     [HideInInspector] public Vector3 newCircleCenter;
+    private float angle;
 
-    [Header(" Platform ")]
+    [Header("Platform")]
     private GameObject platform;
     private MeshCollider platformMeshCollider;
-    private Vector3[] sides;
-    private Vector3 closestEdge;    
+    private Vector3[] vertices;
     private float minDistance;
-    public bool rotatingPlatform;
+    [HideInInspector] public Vector3 closestVertex;
 
     private void Start()
     {
         chController = GetComponent<CharacterController>();
+        capsuleCollider = GetComponent<CapsuleCollider>();
         platform = GameObject.FindGameObjectWithTag("Floor");
         platformMeshCollider = platform.GetComponent<MeshCollider>();
         minDistance = Vector3.Magnitude(platformMeshCollider.bounds.max);
         Debug.Log($"Initial minDistance: {minDistance}");
-        GetPlatformEdges();
+        GetPlatformVertices();
         SetNewCenter();
     }
 
     void Update()
     {
+        angle += Time.deltaTime * angularSpeed;
         deltaMovement = chController.velocity;        
         changeInterval -= Time.deltaTime;
         
         if (changeInterval <= 0)
         {
-            GetPlatformEdges();
-            GetClosestEdge();
+            GetPlatformVertices();
+            GetClosestVertex();
             SetNewCenter();
             SetNewChangeTime();
         }
 
-        CheckIfGrounded();
-        chController.transform.RotateAround(newCircleCenter, Vector3.up, angle);
+        ChControllerMovement();
     }
 
     private void SetNewChangeTime()
@@ -85,8 +86,7 @@ public class Movement : MonoBehaviour
     public void ComputeCircumference()
     {
         radius = Random.Range(1f, minDistance);
-        center = new Vector3(Random.Range(-platformMeshCollider.bounds.extents.x, platformMeshCollider.bounds.extents.x), 0, Random.Range(-platformMeshCollider.bounds.extents.z, platformMeshCollider.bounds.extents.z));
-        angle += speed * Time.deltaTime;
+        center = new Vector3(Random.Range(platformMeshCollider.bounds.min.x, platformMeshCollider.bounds.max.x), platformMeshCollider.transform.position.y, Random.Range(platformMeshCollider.bounds.min.z, platformMeshCollider.bounds.max.z));
     }
 
     private void SetNewCenter()
@@ -104,7 +104,7 @@ public class Movement : MonoBehaviour
                 ComputeCircumference();
                 newCircleCenter = center;
 
-                if (CoplanarityCheck(DistanceVector(oldCircleCenter, chController.transform.position), DistanceVector(newCircleCenter, chController.transform.position), deltaMovement))
+                if (CoplanarityCheck(oldCircleCenter, newCircleCenter, deltaMovement))
                 {   
                     //Failure
                     currentCenter = Vector3.zero;
@@ -114,11 +114,9 @@ public class Movement : MonoBehaviour
                 {
                     //Success
                     currentCenter = newCircleCenter;
-                    centerFound = true;
+                    centerFound = true;                                      
                     Debug.Log("<color=green>New center is on the OTHER plane side! New circumference SUCCESSFULLY found! </color>");
-                    Debug.Log($"OldCenter: {oldCircleCenter}  NewCenter: {newCircleCenter}  final radius: {radius} \n attempts: {attempts}");
-                    // Draw the currentCenter 
-                    Debug.DrawLine(newCircleCenter, newCircleCenter + Vector3.up * 5f, Color.red, 5f);
+                    Debug.DrawLine(newCircleCenter, newCircleCenter + Vector3.up * 5f, Color.red, 30f);
                     break;
                 }
             }
@@ -132,23 +130,12 @@ public class Movement : MonoBehaviour
 
     private bool CoplanarityCheck(Vector3 a, Vector3 b, Vector3 v)
     {
-        Vector3 crossVA = Vector3.Cross(v, a);
-        Vector3 crossVANormalized = Vector3.Normalize(crossVA);
-        Vector3 crossVB = Vector3.Cross(v, b);
-        Vector3 crossVBNormalized = Vector3.Normalize(crossVB);
-        if (Vector3.Dot(crossVANormalized, crossVBNormalized) > 0) return true; // dot > 0 --> check non superato
-        else return false; // dot < 0 --> check superato
+        return Vector3.Dot(Vector3.Cross(v, a), Vector3.Cross(v, b)) > 0;
     }
 
-    private Vector3 DistanceVector(Vector3 a, Vector3 b)
+    public Vector3[] GetPlatformVertices()
     {
-        return new Vector3(b.x - a.x, b.y - a.y, b.z - a.z);
-    }
-
-    public Vector3[] GetPlatformEdges()
-    {
-        sides = new Vector3[4];
-        Vector3[] vertices = new Vector3[4];
+        vertices = new Vector3[4];
         try
         {
             if (platformMeshCollider != null && platformMeshCollider.sharedMesh != null)
@@ -159,17 +146,13 @@ public class Movement : MonoBehaviour
                 vertices[1] = planeMax; // top right
                 vertices[2] = new Vector3(planeMin.x, planeMin.y, planeMax.z); // top left
                 vertices[3] = new Vector3(planeMax.x, planeMax.y, planeMin.z); // bottom right
-                sides[0] = DistanceVector(vertices[0], vertices[3]); // bottom
-                sides[1] = DistanceVector(vertices[0], vertices[2]); // left
-                sides[2] = DistanceVector(vertices[1], vertices[2]); // top
-                sides[3] = DistanceVector(vertices[1], vertices[3]); // right
 
                 //Draws the platform edges
                 Debug.DrawLine(vertices[0], vertices[3], Color.red, 40f);
                 Debug.DrawLine(vertices[0], vertices[2], Color.blue, 40f);
                 Debug.DrawLine(vertices[1], vertices[2], Color.yellow, 40f);
                 Debug.DrawLine(vertices[1], vertices[3], Color.green, 40f);
-                return sides;
+                return vertices;
             }
             else return null;
         }
@@ -181,49 +164,42 @@ public class Movement : MonoBehaviour
         }
     }
 
-    public void GetClosestEdge()
+    public void GetClosestVertex()
     {
-        if (sides == null || sides.Length == 0)
+        if (vertices == null || vertices.Length == 0)
         {
-            Debug.LogError("Sides array is null or empty.");
+            Debug.LogError("Vertices array is null or empty.");
             return;
         }
 
         minDistance = float.MaxValue;
 
-        foreach (Vector3 edge in sides)
+        for (int i = 0; i < vertices.Length; i++)
         {
-            float squaredDistance = Vector3.Magnitude(chController.transform.position - edge);
-            if (squaredDistance < minDistance)
+            float distance = Vector3.Magnitude(chController.transform.position - vertices[i]);
+            if (distance < minDistance)
             {
-                minDistance = squaredDistance;
-                closestEdge = edge;
-                Debug.Log($"Closest edge: {closestEdge}  minDistance: {minDistance}");
+                minDistance = distance;
+                closestVertex = vertices[i];
             }
         }
     }
 
-    private void PlaneRotation()
+    private void ChControllerMovement()
     {
-        if (platform != null) platform.transform.Rotate(0, .2f, 0);
-    }
-
-    private void CheckIfGrounded()
-    {
-        if (chController.transform.position.x > platformMeshCollider.bounds.extents.x ||
-            chController.transform.position.z > platformMeshCollider.bounds.extents.z)
+        float distanceToGround = capsuleCollider.height / 2;
+        if (Physics.Raycast(capsuleCollider.bounds.min, Vector3.down, out _, distanceToGround + 0.1f, LayerMask.GetMask("groundMask")))
         {
-            isGrounded = false;
-            chController.Move(9f * Time.deltaTime * Vector3.down);
+            Debug.DrawRay(capsuleCollider.bounds.min, Vector3.down * (distanceToGround + 0.1f), Color.green, 30f);
+            float x = currentCenter.x + Mathf.Cos(angle) * radius;
+            float z = currentCenter.z + Mathf.Sin(angle) * radius;
+            dir = new(x, 0, z);
+            chController.Move(Time.deltaTime * dir);
         }
         else
         {
-            isGrounded = true;
+            Debug.DrawRay(capsuleCollider.bounds.min, Vector3.down * (distanceToGround + 0.1f), Color.red, 30f);
+            chController.Move(9.8f * Time.deltaTime * Vector3.down);
         }
-    }
-
-    private void CameraFollow()
-    {        
-        Camera.main.transform.LookAt(chController.transform.position);
     }
 }
