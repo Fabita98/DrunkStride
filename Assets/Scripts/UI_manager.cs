@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
-    public Text circleCenterText, timeRemainingText, closestEdgeText;
+    public Text circleInfoText, timeRemainingText, closestFurthestVerText;
     private Movement movement;
 
     void Start()
@@ -15,10 +15,10 @@ public class UIManager : MonoBehaviour
     {
         if (movement.centerFound)
         {
-            circleCenterText.text = $"Circle Center: {movement.newCircleCenter} \nRadius: {movement.radius}";
+            circleInfoText.text = $"Circle Center: {movement.currentCenter} \nRadius: {movement.radius}";
         }
 
         timeRemainingText.text = $"Time Remaining: {movement.changeInterval}\nTimer changed {movement.changeTimerCounter} times";       
-        closestEdgeText.text = $"Closest Edge: {movement.closestVertex}";        
+        closestFurthestVerText.text = $"ClosestVer: {movement.closestVertexName}\nFurthestVer: {movement.furthestVertexName}";        
     }
 }

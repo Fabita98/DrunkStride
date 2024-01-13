@@ -1,76 +1,69 @@
 ﻿using System;
+using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using Random = UnityEngine.Random;
-/* 
-Creazione di un agente che si muove su una piattaforma senza mai percorrere una linea retta.
-
-Configurazione
-La piattaforma può avere qualsiasi dimensione, quadrata o rettangolare.
-L'agente cambierà traiettoria a intervalli casuali: ogni volta percorrerà una circonferenza diversa, 
-dirigendosi prima a destra e poi a sinistra continuamente.
-L'agente si muove a una velocità costante di 1 m/s.
-Ad ogni intervallo, l'agente sceglierà un valore casuale per il tempo del prossimo cambio di traiettoria nell'intervallo [1, 10] secondi.
-Indipendentemente dal cambio del nuovo intervallo temporale, 
-l'agente selezionerà una circonferenza casuale dirigendosi a destra o a sinistra,
-con un raggio compreso tra 1 e il massimo raggio che non faccia cadere l'agente dalla piattaforma.
-La selezione della nuova direzione di movimento è indipendente dal tempo del prossimo cambio di traiettoria.
-L'agente non si ferma mai.
-Vincoli
-- Il sistema deve funzionare indipendentemente dalla forma o dalle dimensioni della piattaforma. 
-- Raggio [1 : Max_radius]
-- Intervallo [1 : 10]s / {0}
-*/
 
 public class Movement : MonoBehaviour
 {
     [Header("Agent")]
-    [SerializeField] private float angularSpeed = 1f;
-    private Vector3 deltaMovement;
-    private Vector3 dir;
+    [SerializeField] private float speed = 1f;
+    private Vector3 agentVelocity;
     private CapsuleCollider capsuleCollider;
     private CharacterController chController;
     [NonSerialized] public bool centerFound;
+    [NonSerialized] public bool isMovingRight = true;
 
     [Header("Events")]
     [HideInInspector] public int changeTimerCounter = 0;
     [HideInInspector] public float changeInterval;
 
     [Header("Circumference")]
-    private Vector3 center, oldCircleCenter, currentCenter;
     [HideInInspector] public float radius;
-    [HideInInspector] public Vector3 newCircleCenter;
-    private float angle;
+    private Vector3 newCircleCenter;
+    private Vector3[] circlePos;
+    private float theta;
+    private float[] radians;
+    private int validPoints;
+    private bool circleFound;
+    [HideInInspector] public Vector3 currentCenter;
 
     [Header("Platform")]
     private GameObject platform;
     private MeshCollider platformMeshCollider;
-    private Vector3[] vertices;
-    private float minDistance;
-    [HideInInspector] public Vector3 closestVertex;
+    private float minX, maxX, minZ, maxZ;
+    private readonly Vector3[] vertices = new Vector3[4];
+    private Bounds platformBounds;
+    private float minDistance, maxDistance;
+    private int groundMask;
+    [HideInInspector]
+    public Vector3 closestVertex, furthestVertex;
+    public string closestVertexName, furthestVertexName;
+    public string[] vertexNames = new string[4];
 
-    private void Start()
+private void Start()
     {
         chController = GetComponent<CharacterController>();
         capsuleCollider = GetComponent<CapsuleCollider>();
         platform = GameObject.FindGameObjectWithTag("Floor");
         platformMeshCollider = platform.GetComponent<MeshCollider>();
-        minDistance = Vector3.Magnitude(platformMeshCollider.bounds.max);
+        platformBounds = platformMeshCollider.bounds;
+        groundMask = LayerMask.GetMask("groundMask");
+        chController.transform.position = platformBounds.center;
+        GetClosestAndFurthestVertex();
         Debug.Log($"Initial minDistance: {minDistance}");
-        GetPlatformVertices();
-        SetNewCenter();
     }
 
     void Update()
     {
-        angle += Time.deltaTime * angularSpeed;
-        deltaMovement = chController.velocity;        
+        agentVelocity = chController.velocity;        
         changeInterval -= Time.deltaTime;
         
         if (changeInterval <= 0)
         {
-            GetPlatformVertices();
-            GetClosestVertex();
-            SetNewCenter();
+            isMovingRight = !isMovingRight;
+            GetClosestAndFurthestVertex();
+            SetCirclePosition();
             SetNewChangeTime();
         }
 
@@ -83,123 +76,123 @@ public class Movement : MonoBehaviour
         changeInterval = Random.Range(1f, 10f); // [1, 10]
     }
 
-    public void ComputeCircumference()
+    void SetCirclePosition()
     {
-        radius = Random.Range(1f, minDistance);
-        center = new Vector3(Random.Range(platformMeshCollider.bounds.min.x, platformMeshCollider.bounds.max.x), platformMeshCollider.transform.position.y, Random.Range(platformMeshCollider.bounds.min.z, platformMeshCollider.bounds.max.z));
-    }
+        circleFound = false;
+        float tempRadius = 0;
+        circlePos = new Vector3[4];
 
-    private void SetNewCenter()
-    {
-        centerFound = false;
-        int maxAttempts = 1000;
-        int attempts = 0; 
-
-        while (centerFound.Equals(false) && attempts < maxAttempts)
+        if (circlePos == null || circlePos.Length == 0)
         {
-            attempts++;
-            try
-            {
-                oldCircleCenter = center;
-                ComputeCircumference();
-                newCircleCenter = center;
-
-                if (CoplanarityCheck(oldCircleCenter, newCircleCenter, deltaMovement))
-                {   
-                    //Failure
-                    currentCenter = Vector3.zero;
-                    Debug.Log("<color=orange>New center is NOT on the other plan side! --> Lets try again... </color>");
-                }
-                else
-                {
-                    //Success
-                    currentCenter = newCircleCenter;
-                    centerFound = true;                                      
-                    Debug.Log("<color=green>New center is on the OTHER plane side! New circumference SUCCESSFULLY found! </color>");
-                    Debug.DrawLine(newCircleCenter, newCircleCenter + Vector3.up * 5f, Color.red, 30f);
-                    break;
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("An error occurred: maxAttempts reached " + e.Message);
-                break;
-            }
-        }
-    }
-
-    private bool CoplanarityCheck(Vector3 a, Vector3 b, Vector3 v)
-    {
-        return Vector3.Dot(Vector3.Cross(v, a), Vector3.Cross(v, b)) > 0;
-    }
-
-    public Vector3[] GetPlatformVertices()
-    {
-        vertices = new Vector3[4];
-        try
-        {
-            if (platformMeshCollider != null && platformMeshCollider.sharedMesh != null)
-            {
-                Vector3 planeMin = platformMeshCollider.bounds.min;
-                Vector3 planeMax = platformMeshCollider.bounds.max;
-                vertices[0] = planeMin; // bottom left
-                vertices[1] = planeMax; // top right
-                vertices[2] = new Vector3(planeMin.x, planeMin.y, planeMax.z); // top left
-                vertices[3] = new Vector3(planeMax.x, planeMax.y, planeMin.z); // bottom right
-
-                //Draws the platform edges
-                Debug.DrawLine(vertices[0], vertices[3], Color.red, 40f);
-                Debug.DrawLine(vertices[0], vertices[2], Color.blue, 40f);
-                Debug.DrawLine(vertices[1], vertices[2], Color.yellow, 40f);
-                Debug.DrawLine(vertices[1], vertices[3], Color.green, 40f);
-                return vertices;
-            }
-            else return null;
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("An error occurred: " + e.Message);
-            Debug.LogError("platformMeshCollider has not been found");
-            return null;
-        }
-    }
-
-    public void GetClosestVertex()
-    {
-        if (vertices == null || vertices.Length == 0)
-        {
-            Debug.LogError("Vertices array is null or empty.");
+            Debug.LogError("circlePos array is null or empty.");
             return;
         }
 
+        try
+        {
+            while (circleFound.Equals(false)) 
+            {
+                tempRadius = Random.Range(1f, minDistance);
+                radians = new float[4] { 0, Mathf.PI / 2, Mathf.PI, 3 * Mathf.PI / 2 };
+                newCircleCenter = new (chController.transform.position.x + (isMovingRight ? tempRadius : -tempRadius), 
+                                        platform.transform.position.y, 
+                                        chController.transform.position.z + (isMovingRight ? tempRadius : -tempRadius));
+
+                for (int i = 0; i < circlePos.Length; i++)
+                {
+                    theta = radians[i];
+                    circlePos[i] = newCircleCenter + new Vector3(tempRadius * Mathf.Cos(theta), 0, tempRadius * Mathf.Sin(theta));
+                    if (platformBounds.Contains(circlePos[i])) validPoints++;
+                }
+                if (validPoints == 4) circleFound = true;
+                else validPoints = 0;
+            }            
+            radius = tempRadius;
+            currentCenter = newCircleCenter;
+        }
+        catch (IndexOutOfRangeException e)
+        {
+            Debug.LogError($"Index out of range in SetCirclePosition(): {e.Message}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Unexpected error in SetCirclePosition(): {e.Message}");
+        }
+    }
+
+    public void GetClosestAndFurthestVertex()
+    {
+        if (platformBounds == null)
+        {
+            Debug.LogError("platformBounds is null or empty.");
+            return;
+        }
+
+        minX = platformBounds.min.x;
+        maxX = platformBounds.max.x;
+        minZ = platformBounds.min.z;
+        maxZ = platformBounds.max.z;
+
+        vertices[0] = new Vector3(platformBounds.min.x, platformBounds.min.y, platformBounds.min.z); // bottom left
+        vertices[1] = new Vector3(platformBounds.min.x, platformBounds.min.y, platformBounds.max.z); // top left
+        vertices[2] = new Vector3(platformBounds.max.x, platformBounds.min.y, platformBounds.min.z); // bottom right
+        vertices[3] = new Vector3(platformBounds.max.x, platformBounds.min.y, platformBounds.max.z); // top right
+
+        vertexNames = new string[] { "bottom left", "top left", "bottom right", "top right" };
+
         minDistance = float.MaxValue;
+        maxDistance = float.MinValue;
 
         for (int i = 0; i < vertices.Length; i++)
         {
-            float distance = Vector3.Magnitude(chController.transform.position - vertices[i]);
+            float distance = Vector3.Distance(chController.transform.position, vertices[i]);
             if (distance < minDistance)
             {
                 minDistance = distance;
                 closestVertex = vertices[i];
+                closestVertexName = vertexNames[i];
+            }
+            if (distance > maxDistance)
+            {
+                maxDistance = distance;
+                furthestVertex = vertices[i];
+                furthestVertexName = vertexNames[i];
             }
         }
     }
 
     private void ChControllerMovement()
     {
+        float duration = 2f;
         float distanceToGround = capsuleCollider.height / 2;
-        if (Physics.Raycast(capsuleCollider.bounds.min, Vector3.down, out _, distanceToGround + 0.1f, LayerMask.GetMask("groundMask")))
+        float maxDir = distanceToGround + 0.1f;
+        Vector3 origin = capsuleCollider.bounds.center;
+        if (Physics.Raycast(origin, Vector3.down, out _, maxDir, groundMask))
         {
-            Debug.DrawRay(capsuleCollider.bounds.min, Vector3.down * (distanceToGround + 0.1f), Color.green, 30f);
-            float x = currentCenter.x + Mathf.Cos(angle) * radius;
-            float z = currentCenter.z + Mathf.Sin(angle) * radius;
-            dir = new(x, 0, z);
-            chController.Move(Time.deltaTime * dir);
+            Vector3 dir = (currentCenter - chController.transform.position).normalized;
+            Vector3 tangent = Vector3.Cross(dir, Vector3.up).normalized;
+            Vector3 movementDirection = isMovingRight ? tangent : -tangent;
+            chController.Move(speed * Time.deltaTime * movementDirection);
+            DrawDebugRays(origin, maxDir, changeInterval, tangent, movementDirection);
         }
         else
         {
-            Debug.DrawRay(capsuleCollider.bounds.min, Vector3.down * (distanceToGround + 0.1f), Color.red, 30f);
+            Debug.DrawRay(origin, Vector3.down * maxDir, Color.red, duration);
             chController.Move(9.8f * Time.deltaTime * Vector3.down);
+        }
+    }
+
+    private void DrawDebugRays(Vector3 origin, float maxDir, float duration, Vector3 tangent, Vector3 movementDirection)
+    {
+        Debug.DrawRay(chController.transform.position, agentVelocity, Color.magenta, changeInterval);
+        Debug.DrawRay(origin, Vector3.down * maxDir, Color.green, duration); // raycast draw
+        Debug.DrawRay(origin, tangent * radius, Color.yellow, duration); // Draw tangent
+        Debug.DrawRay(origin, movementDirection * radius, Color.blue, duration); // Draw movementDirection
+        Debug.DrawRay(currentCenter, Vector3.up, Color.red, changeInterval); // Draw current circle center
+        for (int i = 0; i < circlePos.Length; i++)
+        {
+            // Draw the main 4 points of the currentCircle
+            Debug.DrawRay(circlePos[i], Vector3.up, Color.yellow, changeInterval);
         }
     }
 }
