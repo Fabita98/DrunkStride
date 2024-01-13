@@ -92,6 +92,7 @@ private void Start()
         {
             while (circleFound.Equals(false)) 
             {
+                validPoints = 0;
                 tempRadius = Random.Range(1f, minDistance);
                 radians = new float[4] { 0, Mathf.PI / 2, Mathf.PI, 3 * Mathf.PI / 2 };
                 newCircleCenter = new (chController.transform.position.x + (isMovingRight ? tempRadius : -tempRadius), 
@@ -102,11 +103,10 @@ private void Start()
                 {
                     theta = radians[i];
                     circlePos[i] = newCircleCenter + new Vector3(tempRadius * Mathf.Cos(theta), 0, tempRadius * Mathf.Sin(theta));
-                    if (platformBounds.Contains(circlePos[i])) validPoints++;
+                    if (platformBounds.Contains(circlePos[i])) validPoints++;                                     
                 }
                 if (validPoints == 4) circleFound = true;
-                else validPoints = 0;
-            }            
+            }
             radius = tempRadius;
             currentCenter = newCircleCenter;
         }
