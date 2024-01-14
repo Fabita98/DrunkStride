@@ -8,11 +8,10 @@ public class Movement : MonoBehaviour
 {
     [Header("Agent")]
     [SerializeField] private float speed = 1f;
-    private Vector3 agentVelocity;
     private CapsuleCollider capsuleCollider;
     private CharacterController chController;
-    [NonSerialized] public bool centerFound;
     [NonSerialized] public bool isMovingRight = true;
+    [NonSerialized] public bool isBelow, isRight;
 
     [Header("Events")]
     [HideInInspector] public int changeTimerCounter = 0;
@@ -25,7 +24,7 @@ public class Movement : MonoBehaviour
     private float theta;
     private float[] radians;
     private int validPoints;
-    private bool circleFound;
+    [HideInInspector] public bool circleFound;
     [HideInInspector] public Vector3 currentCenter;
 
     [Header("Platform")]
@@ -33,36 +32,39 @@ public class Movement : MonoBehaviour
     private MeshCollider platformMeshCollider;
     private float minX, maxX, minZ, maxZ;
     private readonly Vector3[] vertices = new Vector3[4];
-    private Bounds platformBounds;
-    private float minDistance, maxDistance;
+    private Bounds platformBounds, resizedPlatformBounds;
+    Vector3 resizedExtents;
+    float resizeAmount;
+    [HideInInspector] public float minDistance, maxDistance;
     private int groundMask;
     [HideInInspector]
     public Vector3 closestVertex, furthestVertex;
     public string closestVertexName, furthestVertexName;
     public string[] vertexNames = new string[4];
 
-private void Start()
+    private void Start()
     {
         chController = GetComponent<CharacterController>();
         capsuleCollider = GetComponent<CapsuleCollider>();
         platform = GameObject.FindGameObjectWithTag("Floor");
         platformMeshCollider = platform.GetComponent<MeshCollider>();
-        platformBounds = platformMeshCollider.bounds;
+        RetrievePlatform();
         groundMask = LayerMask.GetMask("groundMask");
-        chController.transform.position = platformBounds.center;
+        chController.transform.position = resizedPlatformBounds.center;
         GetClosestAndFurthestVertex();
         Debug.Log($"Initial minDistance: {minDistance}");
     }
 
     void Update()
     {
-        agentVelocity = chController.velocity;        
         changeInterval -= Time.deltaTime;
         
         if (changeInterval <= 0)
         {
             isMovingRight = !isMovingRight;
+            RetrievePlatform();
             GetClosestAndFurthestVertex();
+            WhereIsAgent();
             SetCirclePosition();
             SetNewChangeTime();
         }
@@ -73,11 +75,12 @@ private void Start()
     private void SetNewChangeTime()
     {
         changeTimerCounter++;
-        changeInterval = Random.Range(1f, 10f); // [1, 10]
+        changeInterval = Random.Range(0.1f, 10f);
     }
 
     void SetCirclePosition()
     {
+        int maxAttempts = 1000;
         circleFound = false;
         float tempRadius = 0;
         circlePos = new Vector3[4];
@@ -92,20 +95,47 @@ private void Start()
         {
             while (circleFound.Equals(false)) 
             {
+                if (maxAttempts <= 0)
+                {
+                    Debug.LogError("Max attempts reached! --> Moving along previous circle...");
+                    return;
+                }
                 validPoints = 0;
-                tempRadius = Random.Range(1f, minDistance);
+                tempRadius = Random.Range(0.1f, minDistance);
                 radians = new float[4] { 0, Mathf.PI / 2, Mathf.PI, 3 * Mathf.PI / 2 };
-                newCircleCenter = new (chController.transform.position.x + (isMovingRight ? tempRadius : -tempRadius), 
-                                        platform.transform.position.y, 
-                                        chController.transform.position.z + (isMovingRight ? tempRadius : -tempRadius));
+                if (isBelow && isRight)
+                {
+                    newCircleCenter = new Vector3(chController.transform.position.x - tempRadius,
+                                                  platform.transform.position.y,
+                                                  chController.transform.position.z + tempRadius);
+                }
+                else if (isBelow && !isRight)
+                {
+                    newCircleCenter = new Vector3(chController.transform.position.x + tempRadius,
+                                                  platform.transform.position.y,
+                                                  chController.transform.position.z + tempRadius);
+                }
+                else if (!isBelow && isRight)
+                {
+                    newCircleCenter = new Vector3(chController.transform.position.x - tempRadius,
+                                                  platform.transform.position.y,
+                                                  chController.transform.position.z - tempRadius);
+                }
+                else
+                {
+                    newCircleCenter = new Vector3(chController.transform.position.x + tempRadius,
+                                                  platform.transform.position.y,
+                                                  chController.transform.position.z - tempRadius);
+                }
 
                 for (int i = 0; i < circlePos.Length; i++)
                 {
                     theta = radians[i];
                     circlePos[i] = newCircleCenter + new Vector3(tempRadius * Mathf.Cos(theta), 0, tempRadius * Mathf.Sin(theta));
-                    if (platformBounds.Contains(circlePos[i])) validPoints++;                                     
+                    if (resizedPlatformBounds.Contains(circlePos[i])) validPoints++;
+                    if (validPoints == 4) circleFound = true;
                 }
-                if (validPoints == 4) circleFound = true;
+                maxAttempts--;
             }
             radius = tempRadius;
             currentCenter = newCircleCenter;
@@ -128,15 +158,15 @@ private void Start()
             return;
         }
 
-        minX = platformBounds.min.x;
-        maxX = platformBounds.max.x;
-        minZ = platformBounds.min.z;
-        maxZ = platformBounds.max.z;
+        minX = resizedPlatformBounds.min.x;
+        maxX = resizedPlatformBounds.max.x;
+        minZ = resizedPlatformBounds.min.z;
+        maxZ = resizedPlatformBounds.max.z;
 
-        vertices[0] = new Vector3(platformBounds.min.x, platformBounds.min.y, platformBounds.min.z); // bottom left
-        vertices[1] = new Vector3(platformBounds.min.x, platformBounds.min.y, platformBounds.max.z); // top left
-        vertices[2] = new Vector3(platformBounds.max.x, platformBounds.min.y, platformBounds.min.z); // bottom right
-        vertices[3] = new Vector3(platformBounds.max.x, platformBounds.min.y, platformBounds.max.z); // top right
+        vertices[0] = new Vector3(minX, resizedPlatformBounds.min.y, minZ); // bottom left
+        vertices[1] = new Vector3(minX, resizedPlatformBounds.min.y, maxZ); // top left
+        vertices[2] = new Vector3(maxX, resizedPlatformBounds.min.y, minZ); // bottom right
+        vertices[3] = new Vector3(maxX, resizedPlatformBounds.min.y, maxZ); // top right
 
         vertexNames = new string[] { "bottom left", "top left", "bottom right", "top right" };
 
@@ -159,33 +189,35 @@ private void Start()
                 furthestVertexName = vertexNames[i];
             }
         }
+
+        Debug.DrawRay(vertices[0], vertices[1] - vertices[0], Color.red, 3f);
+        Debug.DrawRay(vertices[0], vertices[2] - vertices[0], Color.red, 3f);
+        Debug.DrawRay(vertices[1], vertices[3] - vertices[1], Color.red, 3f);
+        Debug.DrawRay(vertices[2], vertices[3] - vertices[2], Color.red, 3f);
     }
 
     private void ChControllerMovement()
     {
-        float duration = 2f;
+        //float duration = 2f;
         float distanceToGround = capsuleCollider.height / 2;
         float maxDir = distanceToGround + 0.1f;
         Vector3 origin = capsuleCollider.bounds.center;
-        if (Physics.Raycast(origin, Vector3.down, out _, maxDir, groundMask))
-        {
-            Vector3 dir = (currentCenter - chController.transform.position).normalized;
-            Vector3 tangent = Vector3.Cross(dir, Vector3.up).normalized;
-            Vector3 movementDirection = isMovingRight ? tangent : -tangent;
-            chController.Move(speed * Time.deltaTime * movementDirection);
-            DrawDebugRays(origin, maxDir, changeInterval, tangent, movementDirection);
-        }
-        else
-        {
-            Debug.DrawRay(origin, Vector3.down * maxDir, Color.red, duration);
-            chController.Move(9.8f * Time.deltaTime * Vector3.down);
-        }
+        Vector3 dir = (currentCenter - chController.transform.position).normalized;
+        Vector3 tangent = Vector3.Cross(dir, Vector3.up).normalized;
+        Vector3 movementDirection = isMovingRight ? tangent : -tangent;
+        chController.Move(speed * Time.deltaTime * movementDirection);
+        DrawDebugRays(origin, maxDir, changeInterval, tangent, movementDirection);
+        
+        //else
+        //{
+        //    Debug.DrawRay(origin, Vector3.down * maxDir, Color.red, duration);
+        //    chController.Move(9.8f * Time.deltaTime * Vector3.down);
+        //}
     }
 
     private void DrawDebugRays(Vector3 origin, float maxDir, float duration, Vector3 tangent, Vector3 movementDirection)
     {
-        Debug.DrawRay(chController.transform.position, agentVelocity, Color.magenta, changeInterval);
-        Debug.DrawRay(origin, Vector3.down * maxDir, Color.green, duration); // raycast draw
+        //Debug.DrawRay(origin, Vector3.down * maxDir, Color.green, duration); // raycast draw
         Debug.DrawRay(origin, tangent * radius, Color.yellow, duration); // Draw tangent
         Debug.DrawRay(origin, movementDirection * radius, Color.blue, duration); // Draw movementDirection
         Debug.DrawRay(currentCenter, Vector3.up, Color.red, changeInterval); // Draw current circle center
@@ -194,5 +226,20 @@ private void Start()
             // Draw the main 4 points of the currentCircle
             Debug.DrawRay(circlePos[i], Vector3.up, Color.yellow, changeInterval);
         }
+    }
+
+    private void WhereIsAgent() {
+        isBelow = false;
+        isRight = false;
+        if (chController.transform.position.z < resizedPlatformBounds.center.z) isBelow = true;
+        else if (chController.transform.position.x > resizedPlatformBounds.center.x) isRight = true;
+    }
+    
+    private void RetrievePlatform()
+    {
+        platformBounds = platformMeshCollider.bounds;
+        resizeAmount = 1f;
+        resizedExtents = platformBounds.extents - new Vector3(resizeAmount, 0, resizeAmount);
+        resizedPlatformBounds = new Bounds(platformBounds.center, resizedExtents * 2);
     }
 }

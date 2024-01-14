@@ -368,6 +368,7 @@ MonoBehaviour:
   changeTimerCounter: 0
   changeInterval: 0
   radius: 0
+  circleFound: 0
   currentCenter: {x: 0, y: 0, z: 0}
   closestVertex: {x: 0, y: 0, z: 0}
   furthestVertex: {x: 0, y: 0, z: 0}
@@ -982,7 +983,7 @@ GameObject:
   m_TagString: Floor
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!64 &1868884071
 MeshCollider:
@@ -1066,7 +1067,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 15.931, y: 0, z: -4.66}
-  m_LocalScale: {x: 3.3533661, y: 1, z: 3.4246302}
+  m_LocalScale: {x: 3, y: 1, z: 3.3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}

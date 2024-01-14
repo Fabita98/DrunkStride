@@ -13,9 +13,9 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
-        if (movement.centerFound)
+        if (movement.circleFound)
         {
-            circleInfoText.text = $"Circle Center: {movement.currentCenter} \nRadius: {movement.radius}";
+            circleInfoText.text = $"MinDistance: {movement.minDistance} \nRadius: {movement.radius}";
         }
 
         timeRemainingText.text = $"Time Remaining: {movement.changeInterval}\nTimer changed {movement.changeTimerCounter} times";       
