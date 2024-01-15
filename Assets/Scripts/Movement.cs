@@ -1,23 +1,21 @@
 ﻿using System;
-using UnityEditor;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 public class Movement : MonoBehaviour
 {
     [Header("Agent")]
-    [SerializeField] private float speed = 1f;
+    private readonly float speed = 1f;
+    private bool isMovingRight = true;
+    private bool isBelow, isRight;
     private CapsuleCollider capsuleCollider;
-    private CharacterController chController;
-    [NonSerialized] public bool isMovingRight = true;
-    [NonSerialized] public bool isBelow, isRight;
+    [HideInInspector] public CharacterController chController;
 
     [Header("Events")]
     [HideInInspector] public int changeTimerCounter = 0;
     [HideInInspector] public float changeInterval;
 
     [Header("Circumference")]
-    [HideInInspector] public float radius;
     private Vector3 newCircleCenter;
     private Vector3[] circlePos;
     private float theta;
@@ -25,19 +23,18 @@ public class Movement : MonoBehaviour
     private int validPoints;
     [HideInInspector] public bool circleFound;
     [HideInInspector] public Vector3 currentCenter;
+    [HideInInspector] public float radius;
 
     [Header("Platform")]
     private GameObject platform;
     private MeshCollider platformMeshCollider;
     private float minX, maxX, minZ, maxZ;
     private readonly Vector3[] vertices = new Vector3[4];
-    private Bounds platformBounds, resizedPlatformBounds;
+    internal Bounds platformBounds, resizedPlatformBounds;
     [HideInInspector] public float minDistance, maxDistance;
-    private int groundMask;
-    [HideInInspector]
-    public Vector3 closestVertex, furthestVertex;
-    public string closestVertexName, furthestVertexName;
-    public string[] vertexNames = new string[4];
+    [HideInInspector] public Vector3 closestVertex, furthestVertex;
+    [HideInInspector] public string closestVertexName, furthestVertexName;
+    [HideInInspector] public string[] vertexNames = new string[4];
 
     private void Awake()
     {
@@ -48,7 +45,7 @@ public class Movement : MonoBehaviour
     {        
         chController = GetComponent<CharacterController>();
         capsuleCollider = GetComponent<CapsuleCollider>();        
-        chController.transform.position = resizedPlatformBounds.center;
+        chController.transform.position = platformBounds.center;
         GetClosestAndFurthestVertex();
     }
 
@@ -192,28 +189,24 @@ public class Movement : MonoBehaviour
         Debug.DrawRay(vertices[2], vertices[3] - vertices[2], Color.red, 3f);
     }
 
-    private void ChControllerMovement()
+    public void ChControllerMovement()
     {
-        //float duration = 2f;
-        float distanceToGround = capsuleCollider.height / 2;
-        float maxDir = distanceToGround + 0.1f;
+        float duration = 2f;
         Vector3 origin = capsuleCollider.bounds.center;
         Vector3 dir = (currentCenter - chController.transform.position).normalized;
         Vector3 tangent = Vector3.Cross(dir, Vector3.up).normalized;
         Vector3 movementDirection = isMovingRight ? tangent : -tangent;
         chController.Move(speed * Time.deltaTime * movementDirection);
-        DrawDebugRays(origin, maxDir, changeInterval, tangent, movementDirection);
+        DrawDebugRays(origin, duration, tangent, movementDirection);
     }
 
-    private void DrawDebugRays(Vector3 origin, float maxDir, float duration, Vector3 tangent, Vector3 movementDirection)
+    private void DrawDebugRays(Vector3 origin, float duration, Vector3 tangent, Vector3 movementDirection)
     {
-        //Debug.DrawRay(origin, Vector3.down * maxDir, Color.green, duration); // raycast draw
         Debug.DrawRay(origin, tangent * radius, Color.yellow, duration); // Draw tangent
         Debug.DrawRay(origin, movementDirection * radius, Color.blue, duration); // Draw movementDirection
         Debug.DrawRay(currentCenter, Vector3.up, Color.red, changeInterval); // Draw current circle center
         for (int i = 0; i < circlePos.Length; i++)
         {
-            // Draw the main 4 points of the currentCircle
             Debug.DrawRay(circlePos[i], Vector3.up, Color.yellow, changeInterval);
         }
     }
@@ -232,21 +225,22 @@ public class Movement : MonoBehaviour
         newPlane.name = "Platform";
         newPlane.tag = "Floor";
         newPlane.layer = LayerMask.NameToLayer("groundMask");
+        newPlane.isStatic = true;
 
         // Add a MeshCollider to the plane
         MeshCollider planeMeshCollider = newPlane.GetComponent<MeshCollider>();
 
         // Add a MeshRenderer to the plane and assign the BlackFloor material
         MeshRenderer planeMeshRenderer = newPlane.GetComponent<MeshRenderer>();
-        planeMeshRenderer.material = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/BlackFloor.mat");
+        planeMeshRenderer.material.color = Color.black;
 
         // Randomize plane size
         float planeSize = Random.Range(1f, 10f);
         newPlane.transform.localScale = new Vector3(planeSize, newPlane.transform.localScale.y, planeSize);
 
         // Randomize plane position
-        float planePosX = Random.Range(-3f, 3f);
-        float planePosZ = Random.Range(-5f, 5f);
+        float planePosX = Random.Range(-2f, 2f);
+        float planePosZ = Random.Range(-2f, 2f);
         newPlane.transform.position = new Vector3(planePosX, newPlane.transform.position.y, planePosZ);
 
         // Update plane reference
