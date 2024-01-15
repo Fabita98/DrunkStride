@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -33,8 +32,6 @@ public class Movement : MonoBehaviour
     private float minX, maxX, minZ, maxZ;
     private readonly Vector3[] vertices = new Vector3[4];
     private Bounds platformBounds, resizedPlatformBounds;
-    Vector3 resizedExtents;
-    float resizeAmount;
     [HideInInspector] public float minDistance, maxDistance;
     private int groundMask;
     [HideInInspector]
@@ -42,17 +39,17 @@ public class Movement : MonoBehaviour
     public string closestVertexName, furthestVertexName;
     public string[] vertexNames = new string[4];
 
-    private void Start()
+    private void Awake()
     {
+        InstantiateRandomizedPlane();
+    }
+    
+    private void Start()
+    {        
         chController = GetComponent<CharacterController>();
-        capsuleCollider = GetComponent<CapsuleCollider>();
-        platform = GameObject.FindGameObjectWithTag("Floor");
-        platformMeshCollider = platform.GetComponent<MeshCollider>();
-        RetrievePlatform();
-        groundMask = LayerMask.GetMask("groundMask");
+        capsuleCollider = GetComponent<CapsuleCollider>();        
         chController.transform.position = resizedPlatformBounds.center;
         GetClosestAndFurthestVertex();
-        Debug.Log($"Initial minDistance: {minDistance}");
     }
 
     void Update()
@@ -62,7 +59,6 @@ public class Movement : MonoBehaviour
         if (changeInterval <= 0)
         {
             isMovingRight = !isMovingRight;
-            RetrievePlatform();
             GetClosestAndFurthestVertex();
             WhereIsAgent();
             SetCirclePosition();
@@ -207,12 +203,6 @@ public class Movement : MonoBehaviour
         Vector3 movementDirection = isMovingRight ? tangent : -tangent;
         chController.Move(speed * Time.deltaTime * movementDirection);
         DrawDebugRays(origin, maxDir, changeInterval, tangent, movementDirection);
-        
-        //else
-        //{
-        //    Debug.DrawRay(origin, Vector3.down * maxDir, Color.red, duration);
-        //    chController.Move(9.8f * Time.deltaTime * Vector3.down);
-        //}
     }
 
     private void DrawDebugRays(Vector3 origin, float maxDir, float duration, Vector3 tangent, Vector3 movementDirection)
@@ -234,12 +224,37 @@ public class Movement : MonoBehaviour
         if (chController.transform.position.z < resizedPlatformBounds.center.z) isBelow = true;
         else if (chController.transform.position.x > resizedPlatformBounds.center.x) isRight = true;
     }
-    
-    private void RetrievePlatform()
+
+    public void InstantiateRandomizedPlane()
     {
+        // Instantiate a new plane
+        GameObject newPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        newPlane.name = "Platform";
+        newPlane.tag = "Floor";
+        newPlane.layer = LayerMask.NameToLayer("groundMask");
+
+        // Add a MeshCollider to the plane
+        MeshCollider planeMeshCollider = newPlane.GetComponent<MeshCollider>();
+
+        // Add a MeshRenderer to the plane and assign the BlackFloor material
+        MeshRenderer planeMeshRenderer = newPlane.GetComponent<MeshRenderer>();
+        planeMeshRenderer.material = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/BlackFloor.mat");
+
+        // Randomize plane size
+        float planeSize = Random.Range(1f, 10f);
+        newPlane.transform.localScale = new Vector3(planeSize, newPlane.transform.localScale.y, planeSize);
+
+        // Randomize plane position
+        float planePosX = Random.Range(-3f, 3f);
+        float planePosZ = Random.Range(-5f, 5f);
+        newPlane.transform.position = new Vector3(planePosX, newPlane.transform.position.y, planePosZ);
+
+        // Update plane reference
+        platform = newPlane;
+        platformMeshCollider = planeMeshCollider;
         platformBounds = platformMeshCollider.bounds;
-        resizeAmount = 1f;
-        resizedExtents = platformBounds.extents - new Vector3(resizeAmount, 0, resizeAmount);
-        resizedPlatformBounds = new Bounds(platformBounds.center, resizedExtents * 2);
+
+        // Update plane bounds
+        resizedPlatformBounds = new Bounds(platform.transform.position, platform.transform.localScale * 10);
     }
 }
