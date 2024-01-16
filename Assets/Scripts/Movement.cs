@@ -16,9 +16,8 @@ public class Movement : MonoBehaviour
     [HideInInspector] public float changeInterval;
 
     [Header("Circumference")]
-    private Vector3 newCircleCenter;
     private Vector3[] circlePos;
-    private float theta;
+    private float theta = 0;
     private float[] radians;
     private int validPoints;
     [HideInInspector] public bool circleFound;
@@ -74,8 +73,9 @@ public class Movement : MonoBehaviour
     void SetCirclePosition()
     {
         int maxAttempts = 1000;
-        circleFound = false;
         float tempRadius = 0;
+        Vector3 newCircleCenter = Vector3.zero;
+        circleFound = false;
         circlePos = new Vector3[4];
 
         if (circlePos == null || circlePos.Length == 0)
@@ -99,25 +99,25 @@ public class Movement : MonoBehaviour
                 if (isBelow && isRight)
                 {
                     newCircleCenter = new Vector3(chController.transform.position.x - tempRadius,
-                                                  platform.transform.position.y,
+                                                  chController.transform.position.y,
                                                   chController.transform.position.z + tempRadius);
                 }
                 else if (isBelow && !isRight)
                 {
                     newCircleCenter = new Vector3(chController.transform.position.x + tempRadius,
-                                                  platform.transform.position.y,
+                                                  chController.transform.position.y,
                                                   chController.transform.position.z + tempRadius);
                 }
                 else if (!isBelow && isRight)
                 {
                     newCircleCenter = new Vector3(chController.transform.position.x - tempRadius,
-                                                  platform.transform.position.y,
+                                                  chController.transform.position.y,
                                                   chController.transform.position.z - tempRadius);
                 }
                 else
                 {
                     newCircleCenter = new Vector3(chController.transform.position.x + tempRadius,
-                                                  platform.transform.position.y,
+                                                  chController.transform.position.y,
                                                   chController.transform.position.z - tempRadius);
                 }
 
@@ -191,7 +191,7 @@ public class Movement : MonoBehaviour
 
     public void ChControllerMovement()
     {
-        float duration = 2f;
+        float duration = changeInterval;
         Vector3 origin = capsuleCollider.bounds.center;
         Vector3 dir = (currentCenter - chController.transform.position).normalized;
         Vector3 tangent = Vector3.Cross(dir, Vector3.up).normalized;
@@ -202,20 +202,25 @@ public class Movement : MonoBehaviour
 
     private void DrawDebugRays(Vector3 origin, float duration, Vector3 tangent, Vector3 movementDirection)
     {
-        Debug.DrawRay(origin, tangent * radius, Color.yellow, duration); // Draw tangent
-        Debug.DrawRay(origin, movementDirection * radius, Color.blue, duration); // Draw movementDirection
-        Debug.DrawRay(currentCenter, Vector3.up, Color.red, changeInterval); // Draw current circle center
+        Debug.DrawRay(origin, tangent * radius, Color.yellow, 2f); // Draw tangent
+        Debug.DrawRay(origin, movementDirection * radius, Color.blue, 2f); // Draw movementDirection
+        Debug.DrawRay(currentCenter, Vector3.up, Color.red, duration); // Draw current circle center
         for (int i = 0; i < circlePos.Length; i++)
         {
-            Debug.DrawRay(circlePos[i], Vector3.up, Color.yellow, changeInterval);
+            Debug.DrawRay(circlePos[i], Vector3.up, Color.yellow, duration);
+        }
+        for (theta = 0; theta < 2 * MathF.PI; theta += 0.1f) 
+        { 
+        Debug.DrawRay(currentCenter + new Vector3(radius * Mathf.Cos(theta), 0, radius * Mathf.Sin(theta)), Vector3.up, Color.yellow, duration);
         }
     }
 
     private void WhereIsAgent() {
         isBelow = false;
         isRight = false;
-        if (chController.transform.position.z < resizedPlatformBounds.center.z) isBelow = true;
-        else if (chController.transform.position.x > resizedPlatformBounds.center.x) isRight = true;
+        if (chController.transform.position.x > platformBounds.center.x) isRight = true;
+        if (chController.transform.position.z < platformBounds.center.z) isBelow = true;
+        Debug.Log($"Agent is {(isBelow ? "below" : "above")} and {(isRight ? "right" : "left")} the center of the platform.");
     }
 
     public void InstantiateRandomizedPlane()
@@ -235,12 +240,12 @@ public class Movement : MonoBehaviour
         planeMeshRenderer.material.color = Color.black;
 
         // Randomize plane size
-        float planeSize = Random.Range(1f, 10f);
+        float planeSize = Random.Range(3f, 8f);
         newPlane.transform.localScale = new Vector3(planeSize, newPlane.transform.localScale.y, planeSize);
 
         // Randomize plane position
-        float planePosX = Random.Range(-2f, 2f);
-        float planePosZ = Random.Range(-2f, 2f);
+        float planePosX = Random.Range(-10f, 10f);
+        float planePosZ = Random.Range(-10f, 10f);
         newPlane.transform.position = new Vector3(planePosX, newPlane.transform.position.y, planePosZ);
 
         // Update plane reference
