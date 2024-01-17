@@ -9,20 +9,20 @@ public class Movement : MonoBehaviour
     private bool isMovingRight = true;
     private bool isBelow, isRight;
     private CapsuleCollider capsuleCollider;
-    [HideInInspector] public CharacterController chController;
+    internal CharacterController chController;
 
     [Header("Events")]
-    [HideInInspector] public int changeTimerCounter = 0;
-    [HideInInspector] public float changeInterval;
+    internal int changeTimerCounter = 0;
+    internal float changeInterval;
 
     [Header("Circumference")]
     private Vector3[] circlePos;
     private float theta = 0;
     private float[] radians;
     private int validPoints;
-    [HideInInspector] public bool circleFound;
-    [HideInInspector] public Vector3 currentCenter;
-    [HideInInspector] public float radius;
+    internal bool circleFound;
+    internal Vector3 currentCenter;
+    internal float radius;
 
     [Header("Platform")]
     private GameObject platform;
@@ -30,10 +30,10 @@ public class Movement : MonoBehaviour
     private float minX, maxX, minZ, maxZ;
     private readonly Vector3[] vertices = new Vector3[4];
     internal Bounds platformBounds, resizedPlatformBounds;
-    [HideInInspector] public float minDistance, maxDistance;
-    [HideInInspector] public Vector3 closestVertex, furthestVertex;
-    [HideInInspector] public string closestVertexName, furthestVertexName;
-    [HideInInspector] public string[] vertexNames = new string[4];
+    internal float minDistance, maxDistance;
+    internal Vector3 closestVertex, furthestVertex;
+    internal string closestVertexName, furthestVertexName;
+    internal string[] vertexNames = new string[4];
 
     private void Awake()
     {
