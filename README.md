@@ -24,7 +24,7 @@ a straight line.
 ### Setup
 The platform can be of any size, square or rectangular.
 The agent will change trajectory at random intervals. Each time the agent will travel over a
-circumference leading first to right then to the left, then to the right again … and so on.
+circumference leading first to right then to the left, then to the right again â€¦ and so on.
 The agent is moving at a constant speed of 1 meter per second.
 At each interval, the agent will pick a random value for the time to the next trajectory change
 in the range (0, 10] seconds. Note that 0 is excluded.
@@ -393,7 +393,7 @@ later exploited to make the agent move along `tangent/-tangent` direction.
         a valid circle is found or the maximum number of attempts is reached.
         Entering the loop if the starting conditions are satisfied, the method initializes the number of valid points to 0
         and the radius to a random value between 0.1 and the minimum distance computed in the `GetClosestAndFurthestVertex()` method.
-		Then, it creates an array of angles `radians[4]`, corresponding to the angles (0°, 90°, 180°, 270°) that is
+		Then, it creates an array of angles `radians[4]`, corresponding to the angles (0Â°, 90Â°, 180Â°, 270Â°) that is
         used to check if these main points of the current "candidate" circle are all contained in the resized platform bounds.
         If so, the number of valid points is incremented and if it reaches 4, the circle is found and the loop is exited. 
         Otherwise, the maximum number of attempts is decremented and the loop continues until the circle is found or the maximum number of attempts is reached.
@@ -402,24 +402,13 @@ later exploited to make the agent move along `tangent/-tangent` direction.
         It is worth noting that the new circle center is computed according to the quadrant of the platform where the agent is located 
         to prevent it from overtaking the platform bounds. This is realised by moving the coordinates of the new candidate center along (x, z) coordinates of the plane 
         and checking the previously mentioned booleans `isBelow, isRight`, according to the following scheme:
-
-        <style>
-            img {
-                width: 40%;
-                height: 50%;
-                margin: 3px; 
-            }
-            figcaption {
-                text-align: center;
-            }
-        </style>
-        <figure align="center";>
-            <img src="AgentScheme.jpg" alt="New circle center computation scheme">
-            <figcaption><i>Figure 1: the computation of the new circle center position considers the platform's quadrant where the agent relies.</i></figcaption>
-        </figure>
-
-        If everything goes as expected, the radius and the center are updated and the method returns. If not and the maximum number of attempts is reached,
-        the method returns the previous values of the radius and the center, avoiding an infinite loop condition.
+	      <p align="center">
+		  <img src="AgentScheme.jpg" alt="New circle center computation scheme">
+		  <br>
+		  <em><i>Figure 1: the computation of the new circle center position considers the platform's quadrant where the agent relies.</i></em>
+	     </p>       
+	        If everything goes as expected, the radius and the center are updated and the method returns. If not and the maximum number of attempts is reached,
+	        the method returns the previous values of the radius and the center, avoiding an infinite loop condition.
     
 
     - `SetNewChangeTime()`: being called only when the timer expires, this method simply updates the timer for the next change and counts how many times it is expired.
@@ -476,34 +465,21 @@ later exploited to make the agent move along `tangent/-tangent` direction.
 
             For a better understanding of rays debugging and the whole simulation, the following images show the agent in both scene and game views:
            
-            <style>
-            img {
-                width: 60%;
-                height: auto;
-                margin: 5px; 
-            }
-            figcaption {
-                text-align: center;
-            }
-            </style>
-
-            <body>
-            <figure align="center";>
-                <img src="scene.png" alt="Scene view">
-                <figcaption><i>Figure 2: scene view displaying the debugged rays. Blue color is for movement direction while yellow for the tangent.</i></figcaption>
-            </figure>
-
-            <figure align="center";>
-                <img src="game.png" alt="Game view">
-                <figcaption><i>Figure 3: the game view when the simulation runs, showing testing data because of the UIManager class.</i></figcaption>
-            </figure>
-
-            <figure align="center";>
-                <img src="tangent_is_moveDir.png" alt="Scene view where tangent = moveDir">
-                <figcaption><i>Figure 4: scene view where the yellow and blue rays overlap because the character is moving along the tangent direction.</i></figcaption>
-            </figure>
-            </body>
-
+	<p align="center">
+	  <img src="scene.png" alt="Scene view">
+	  <br>
+	  <em><i>Figure 2: scene view displaying the debugged rays. Blue color is for movement direction while yellow for the tangent.</i></em>
+     	</p>
+      	<p align="center">
+	  <img src="game.png" alt="Game view">
+	  <br>
+	  <em><i>Figure 3: the game view when the simulation runs, showing testing data because of the UIManager class.</i></em>
+     	</p>
+      	<p align="center">
+	  <img src="tangent_is_moveDir.png" alt="Scene view where tangent = moveDir">
+	  <br>
+	  <em><i>Figure 4: scene view where the yellow and blue rays overlap because the character is moving along the tangent direction.</i></em>
+     	</p>
 Now that the `Movement` class has been described, it is possible to move on to the `UIManager` class.		    
 
 ## UIManager class documentation
@@ -570,21 +546,12 @@ More specifically:
     </details>
     
     If the agent is outside the platform, the warning button is enabled and displays a warning message as can be seen below, otherwise it remains deactivated.
-    <style>
-        img {
-            width: 80%;
-            height: auto;
-            margin: 5px; 
-        }
-        figcaption {
-            text-align: center;
-        }
-    </style>
-    <figure align="center";>
-        <img src="warning.png" alt="Warning game view">
-        <figcaption><i>Figure 5: game view displaying the warning message that the agent has overtaken the platform boundaries.</i></figcaption>
-    </figure>
-
+	  <p align="center">
+		  <img src="warning.png" alt="Warning game view">
+		  <br>
+		  <em><i>Figure 5: game view displaying the warning message that the agent has overtaken the platform boundaries.</i></em>
+	  </p>
+   
 <div align="center">
 
 ## Summary
