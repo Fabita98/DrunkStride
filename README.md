@@ -83,38 +83,41 @@ These and the majority of the code has been developed in the `Movement.cs` scrip
 
 #### Variables
 
-```
-[Header("Agent")]
-private readonly float speed = 1f;
-private bool isMovingRight = true;
-private bool isBelow, isRight;
-private CapsuleCollider capsuleCollider;
-internal CharacterController chController;
+<details>
+<summary>Click here to show/hide the code for variables...</summary>
+    <br>
 
-[Header("Events")]
-internal int changeTimerCounter = 0;
-internal float changeInterval;
+    [Header("Agent")]
+    private readonly float speed = 1f;
+    private bool isMovingRight = true;
+    private bool isBelow, isRight;
+    private CapsuleCollider capsuleCollider;
+    internal CharacterController chController;
 
-[Header("Circumference")]
-private Vector3[] circlePos;
-private float theta = 0;
-private float[] radians;
-private int validPoints;
-internal bool circleFound;
-internal Vector3 currentCenter;
-internal float radius;
+    [Header("Events")]
+    internal int changeTimerCounter = 0;
+    internal float changeInterval;
 
-[Header("Platform")]
-private GameObject platform;
-private MeshCollider platformMeshCollider;
-private float minX, maxX, minZ, maxZ;
-private readonly Vector3[] vertices = new Vector3[4];
-internal Bounds platformBounds, resizedPlatformBounds;
-internal float minDistance, maxDistance;
-internal Vector3 closestVertex, furthestVertex;
-internal string closestVertexName, furthestVertexName;
-internal string[] vertexNames = new string[4];
-```
+    [Header("Circumference")]
+    private Vector3[] circlePos;
+    private float theta = 0;
+    private float[] radians;
+    private int validPoints;
+    internal bool circleFound;
+    internal Vector3 currentCenter;
+    internal float radius;
+
+    [Header("Platform")]
+    private GameObject platform;
+    private MeshCollider platformMeshCollider;
+    private float minX, maxX, minZ, maxZ;
+    private readonly Vector3[] vertices = new Vector3[4];
+    internal Bounds platformBounds, resizedPlatformBounds;
+    internal float minDistance, maxDistance;
+    internal Vector3 closestVertex, furthestVertex;
+    internal string closestVertexName, furthestVertexName;
+    internal string[] vertexNames = new string[4];
+</details>
 
 Divided per category, the variables are related to the agent/character, to the events such as the interval change time 
 for the next random range in `[0 : 10] \ {0}`, to the circumference and finally to the platform where the agent should move.
@@ -131,8 +134,8 @@ later exploited to make the agent move along `tangent/-tangent` direction.
 
 #### Methods
 
-- `Awake()`: in here is instantiated a randomised plane that serves as the platform where the agent will move on. 
-
+- `Awake()`: here is instantiated a randomised plane that serves as the platform where the agent will move on. 
+    
     ```
     private void Awake()
     {
@@ -153,42 +156,44 @@ later exploited to make the agent move along `tangent/-tangent` direction.
         and its collider are updated.
         In the end, the internal bounds of the resized platform are defined. These `resizedPlatformBounds` will be used to check 
         if the new circumferences will be contained in the platform or not.
+        <details>
+        <summary>Click here to show/hide the <code>InstantiateRandomizedPlane()</code> method...</summary>
+            <br>
     
-        ```
-        public void InstantiateRandomizedPlane()
-        {
-            // Instantiate a new plane
-            GameObject newPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            newPlane.name = "Platform";
-            newPlane.tag = "Floor";
-            newPlane.layer = LayerMask.NameToLayer("groundMask");
-            newPlane.isStatic = true;
+            public void InstantiateRandomizedPlane()
+            {
+                // Instantiate a new plane
+                GameObject newPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+                newPlane.name = "Platform";
+                newPlane.tag = "Floor";
+                newPlane.layer = LayerMask.NameToLayer("groundMask");
+                newPlane.isStatic = true;
 
-            // Add a MeshCollider to the plane
-            MeshCollider planeMeshCollider = newPlane.GetComponent<MeshCollider>();
+                // Add a MeshCollider to the plane
+                MeshCollider planeMeshCollider = newPlane.GetComponent<MeshCollider>();
 
-            // Add a MeshRenderer to the plane and assign the BlackFloor material
-            MeshRenderer planeMeshRenderer = newPlane.GetComponent<MeshRenderer>();
-            planeMeshRenderer.material.color = Color.black;
+                // Add a MeshRenderer to the plane and assign the BlackFloor material
+                MeshRenderer planeMeshRenderer = newPlane.GetComponent<MeshRenderer>();
+                planeMeshRenderer.material.color = Color.black;
 
-            // Randomize plane size
-            float planeSize = Random.Range(3f, 8f);
-            newPlane.transform.localScale = new Vector3(planeSize, newPlane.transform.localScale.y, planeSize);
+                // Randomize plane size
+                float planeSize = Random.Range(3f, 8f);
+                newPlane.transform.localScale = new Vector3(planeSize, newPlane.transform.localScale.y, planeSize);
 
-            // Randomize plane position
-            float planePosX = Random.Range(-10f, 10f);
-            float planePosZ = Random.Range(-10f, 10f);
-            newPlane.transform.position = new Vector3(planePosX, newPlane.transform.position.y, planePosZ);
+                // Randomize plane position
+                float planePosX = Random.Range(-10f, 10f);
+                float planePosZ = Random.Range(-10f, 10f);
+                newPlane.transform.position = new Vector3(planePosX, newPlane.transform.position.y, planePosZ);
 
-            // Update plane reference
-            platform = newPlane;
-            platformMeshCollider = planeMeshCollider;
-            platformBounds = platformMeshCollider.bounds;
+                // Update plane reference
+                platform = newPlane;
+                platformMeshCollider = planeMeshCollider;
+                platformBounds = platformMeshCollider.bounds;
 
-            // Update plane bounds
-            resizedPlatformBounds = new Bounds(platform.transform.position, platform.transform.localScale * 10);
-        }
-        ```                    
+                // Update plane bounds
+                resizedPlatformBounds = new Bounds(platform.transform.position, platform.transform.localScale * 10);
+            }
+        </details>                 
         
 - `Start()`: initializes the `characterController` component, the collider of the capsule used as the agent and its position, placing it 
     to the center of the platform.
@@ -211,54 +216,56 @@ later exploited to make the agent move along `tangent/-tangent` direction.
         The result of these operations define the maximum acceptable radius for the new circular paths,
         which is the distance between the agent and the closest vertex.
 
+        <details>
+        <summary>Click here to show/hide <code>GetClosestAndFurthestVertex()</code> method...</summary>
+            <br>
 
-        ```
-        public void GetClosestAndFurthestVertex()
-        {
-            if (platformBounds == null)
+            public void GetClosestAndFurthestVertex()
             {
-                Debug.LogError("platformBounds is null or empty.");
-                return;
-            }
-
-            minX = resizedPlatformBounds.min.x;
-            maxX = resizedPlatformBounds.max.x;
-            minZ = resizedPlatformBounds.min.z;
-            maxZ = resizedPlatformBounds.max.z;
-
-            vertices[0] = new Vector3(minX, resizedPlatformBounds.min.y, minZ); // bottom left
-            vertices[1] = new Vector3(minX, resizedPlatformBounds.min.y, maxZ); // top left
-            vertices[2] = new Vector3(maxX, resizedPlatformBounds.min.y, minZ); // bottom right
-            vertices[3] = new Vector3(maxX, resizedPlatformBounds.min.y, maxZ); // top right
-
-            vertexNames = new string[] { "bottom left", "top left", "bottom right", "top right" };
-
-            minDistance = float.MaxValue;
-            maxDistance = float.MinValue;
-
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                float distance = Vector3.Distance(chController.transform.position, vertices[i]);
-                if (distance < minDistance)
+                if (platformBounds == null)
                 {
-                    minDistance = distance;
-                    closestVertex = vertices[i];
-                    closestVertexName = vertexNames[i];
+                    Debug.LogError("platformBounds is null or empty.");
+                    return;
                 }
-                if (distance > maxDistance)
-                {
-                    maxDistance = distance;
-                    furthestVertex = vertices[i];
-                    furthestVertexName = vertexNames[i];
-                }
-            }
 
-            Debug.DrawRay(vertices[0], vertices[1] - vertices[0], Color.red, 3f);
-            Debug.DrawRay(vertices[0], vertices[2] - vertices[0], Color.red, 3f);
-            Debug.DrawRay(vertices[1], vertices[3] - vertices[1], Color.red, 3f);
-            Debug.DrawRay(vertices[2], vertices[3] - vertices[2], Color.red, 3f);
-        }
-        ```
+                minX = resizedPlatformBounds.min.x;
+                maxX = resizedPlatformBounds.max.x;
+                minZ = resizedPlatformBounds.min.z;
+                maxZ = resizedPlatformBounds.max.z;
+
+                vertices[0] = new Vector3(minX, resizedPlatformBounds.min.y, minZ); // bottom left
+                vertices[1] = new Vector3(minX, resizedPlatformBounds.min.y, maxZ); // top left
+                vertices[2] = new Vector3(maxX, resizedPlatformBounds.min.y, minZ); // bottom right
+                vertices[3] = new Vector3(maxX, resizedPlatformBounds.min.y, maxZ); // top right
+
+                vertexNames = new string[] { "bottom left", "top left", "bottom right", "top right" };
+
+                minDistance = float.MaxValue;
+                maxDistance = float.MinValue;
+
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    float distance = Vector3.Distance(chController.transform.position, vertices[i]);
+                    if (distance < minDistance)
+                    {
+                        minDistance = distance;
+                        closestVertex = vertices[i];
+                        closestVertexName = vertexNames[i];
+                    }
+                    if (distance > maxDistance)
+                    {
+                        maxDistance = distance;
+                        furthestVertex = vertices[i];
+                        furthestVertexName = vertexNames[i];
+                    }
+                }
+
+                Debug.DrawRay(vertices[0], vertices[1] - vertices[0], Color.red, 3f);
+                Debug.DrawRay(vertices[0], vertices[2] - vertices[0], Color.red, 3f);
+                Debug.DrawRay(vertices[1], vertices[3] - vertices[1], Color.red, 3f);
+                Debug.DrawRay(vertices[2], vertices[3] - vertices[2], Color.red, 3f);
+            }
+        </details>
 
 - `Update()`: starts with the `changeInterval` variable update.
     Then, when the timer expires, the direction of the agent is changed through the boolean `isMovingRight`.
@@ -282,7 +289,7 @@ later exploited to make the agent move along `tangent/-tangent` direction.
     ```
 
     From this point on, all methods in the `Movement` class are called and 
-    that is why they will be illustrated in the following according to their calls order:
+    that is why they will be illustrated in the following, accordingly to their calls order:
         
     - `GetClosestAndFurthestVertex()`: already described above.
 
@@ -304,80 +311,84 @@ later exploited to make the agent move along `tangent/-tangent` direction.
         It uses local variables to check if the maximum number of attempts to compute the new circle center is reached and to temporarily store the radius and the center 
         that will be eventually confirmed as definitive at the end of the loop, inserted in a `try-catch` statement to handle undesired behaviours. 
 
-        ```
-        void SetCirclePosition()
-        {
-            int maxAttempts = 1000;
-            float tempRadius = 0;
-            Vector3 newCircleCenter = Vector3.zero;
-            circleFound = false;
-            circlePos = new Vector3[4];
+        <details>
+        <summary>Click here to show/hide the <code>SetCirclePosition()</code> method...</summary>
+            <br>
 
-            if (circlePos == null || circlePos.Length == 0)
-            {
-                Debug.LogError("circlePos array is null or empty.");
-                return;
-            }
 
-            try
+            void SetCirclePosition()
             {
-                while (circleFound.Equals(false)) 
+                int maxAttempts = 1000;
+                float tempRadius = 0;
+                Vector3 newCircleCenter = Vector3.zero;
+                circleFound = false;
+                circlePos = new Vector3[4];
+
+                if (circlePos == null || circlePos.Length == 0)
                 {
-                    if (maxAttempts <= 0)
-                    {
-                        Debug.LogError("Max attempts reached! --> Moving along previous circle...");
-                        return;
-                    }
-                    validPoints = 0;
-                    tempRadius = Random.Range(0.1f, minDistance);
-                    radians = new float[4] { 0, Mathf.PI / 2, Mathf.PI, 3 * Mathf.PI / 2 };
-                    if (isBelow && isRight)
-                    {
-                        newCircleCenter = new Vector3(chController.transform.position.x - tempRadius,
-                                                        chController.transform.position.y,
-                                                        chController.transform.position.z + tempRadius);
-                    }
-                    else if (isBelow && !isRight)
-                    {
-                        newCircleCenter = new Vector3(chController.transform.position.x + tempRadius,
-                                                        chController.transform.position.y,
-                                                        chController.transform.position.z + tempRadius);
-                    }
-                    else if (!isBelow && isRight)
-                    {
-                        newCircleCenter = new Vector3(chController.transform.position.x - tempRadius,
-                                                        chController.transform.position.y,
-                                                        chController.transform.position.z - tempRadius);
-                    }
-                    else
-                    {
-                        newCircleCenter = new Vector3(chController.transform.position.x + tempRadius,
-                                                        chController.transform.position.y,
-                                                        chController.transform.position.z - tempRadius);
-                    }
-
-                    for (int i = 0; i < circlePos.Length; i++)
-                    {
-                        theta = radians[i];
-                        circlePos[i] = newCircleCenter + new Vector3(tempRadius * Mathf.Cos(theta), 0, tempRadius * Mathf.Sin(theta));
-                        if (resizedPlatformBounds.Contains(circlePos[i])) validPoints++;
-                        if (validPoints == 4) circleFound = true;
-                    }
-                    maxAttempts--;
+                    Debug.LogError("circlePos array is null or empty.");
+                    return;
                 }
-                radius = tempRadius;
-                currentCenter = newCircleCenter;
+
+                try
+                {
+                    while (circleFound.Equals(false)) 
+                    {
+                        if (maxAttempts <= 0)
+                        {
+                            Debug.LogError("Max attempts reached! --> Moving along previous circle...");
+                            return;
+                        }
+                        validPoints = 0;
+                        tempRadius = Random.Range(0.1f, minDistance);
+                        radians = new float[4] { 0, Mathf.PI / 2, Mathf.PI, 3 * Mathf.PI / 2 };
+                        if (isBelow && isRight)
+                        {
+                            newCircleCenter = new Vector3(chController.transform.position.x - tempRadius,
+                                                            chController.transform.position.y,
+                                                            chController.transform.position.z + tempRadius);
+                        }
+                        else if (isBelow && !isRight)
+                        {
+                            newCircleCenter = new Vector3(chController.transform.position.x + tempRadius,
+                                                            chController.transform.position.y,
+                                                            chController.transform.position.z + tempRadius);
+                        }
+                        else if (!isBelow && isRight)
+                        {
+                            newCircleCenter = new Vector3(chController.transform.position.x - tempRadius,
+                                                            chController.transform.position.y,
+                                                            chController.transform.position.z - tempRadius);
+                        }
+                        else
+                        {
+                            newCircleCenter = new Vector3(chController.transform.position.x + tempRadius,
+                                                            chController.transform.position.y,
+                                                            chController.transform.position.z - tempRadius);
+                        }
+
+                        for (int i = 0; i < circlePos.Length; i++)
+                        {
+                            theta = radians[i];
+                            circlePos[i] = newCircleCenter + new Vector3(tempRadius * Mathf.Cos(theta), 0, tempRadius * Mathf.Sin(theta));
+                            if (resizedPlatformBounds.Contains(circlePos[i])) validPoints++;
+                            if (validPoints == 4) circleFound = true;
+                        }
+                        maxAttempts--;
+                    }
+                    radius = tempRadius;
+                    currentCenter = newCircleCenter;
+                }
+                catch (IndexOutOfRangeException e)
+                {
+                    Debug.LogError($"Index out of range in SetCirclePosition(): {e.Message}");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Unexpected error in SetCirclePosition(): {e.Message}");
+                }
             }
-            catch (IndexOutOfRangeException e)
-            {
-                Debug.LogError($"Index out of range in SetCirclePosition(): {e.Message}");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Unexpected error in SetCirclePosition(): {e.Message}");
-            }
-        }
-        ```
+        </details>
         
         The method performs a check to control if the array of points `circlePos[i]` is not null or empty and then it enters in a while loop that is going to be executed until
         a valid circle is found or the maximum number of attempts is reached.
@@ -393,15 +404,22 @@ later exploited to make the agent move along `tangent/-tangent` direction.
         to prevent it from overtaking the platform bounds. This is realised by moving the coordinates of the new candidate center along (x, z) coordinates of the plane 
         and checking the previously mentioned booleans `isBelow, isRight`, according to the following scheme:
 
-        <div align="center">
+        <style>
+            img {
+                width: 40%;
+                height: 50%;
+                margin: 3px; 
+            }
+            figcaption {
+                text-align: center;
+            }
+        </style>
+        <figure align="center";>
+            <img src="AgentScheme.jpg" alt="New circle center computation scheme">
+            <figcaption><i>Figure 1: the computation of the new circle center position considers the platform's quadrant where the agent relies.</i></figcaption>
+        </figure>
 
-        ![Capsule Dirs](AgentScheme.jpg)
-
-        *Figure 1: the computation of the new circle center position considers the platform's quadrant where the agent relies.*
-
-        </div>
-
-        If everything goes well, the radius and the center are updated and the method returns. If not and the maximum number of attempts is reached,
+        If everything goes as expected, the radius and the center are updated and the method returns. If not and the maximum number of attempts is reached,
         the method returns the previous values of the radius and the center, avoiding an infinite loop condition.
     
 
@@ -457,6 +475,36 @@ later exploited to make the agent move along `tangent/-tangent` direction.
             }
             ```
 
+            For a better understanding of rays debugging and the whole simulation, the following images show the agent in both scene and game views:
+           
+            <style>
+            img {
+                width: 60%;
+                height: auto;
+                margin: 5px; 
+            }
+            figcaption {
+                text-align: center;
+            }
+            </style>
+
+            <body>
+            <figure align="center";>
+                <img src="scene.png" alt="Scene view">
+                <figcaption><i>Figure 2: scene view displaying the debugged rays. Blue color is for movement direction while yellow for the tangent.</i></figcaption>
+            </figure>
+
+            <figure align="center";>
+                <img src="game.png" alt="Game view">
+                <figcaption><i>Figure 3: the game view when the simulation runs, showing testing data because of the UIManager class.</i></figcaption>
+            </figure>
+
+            <figure align="center";>
+                <img src="tangent_is_moveDir.png" alt="Scene view where tangent = moveDir">
+                <figcaption><i>Figure 4: scene view where the yellow and blue rays overlap because the character is moving along the tangent direction.</i></figcaption>
+            </figure>
+            </body>
+
 Now that the `Movement` class has been described, it is possible to move on to the `UIManager` class.		    
 
 ## UIManager class documentation
@@ -467,14 +515,14 @@ It updates the UI based on the state of the `Movement` class results and data th
 of button and text fields.
 
 ### Variables
-
+There are few variables in this class, such as:
 
 ```
 public Button warningButton;
 public Text circleInfoText, timeRemainingText, closestFurthestVerText, warningText;
 private Movement movement;
 ```
-Entering in the detail:
+More specifically:
 
 - `warningButton`: a button that is activated when the agent is outside the platform.
 - `circleInfoText`: a text field that displays the minimum distance and radius of the circle.
@@ -495,48 +543,62 @@ Entering in the detail:
         movement = FindObjectOfType<Movement>();
     }
     ```
-- `Update()`: once per frame, the UI based on the state of the `Movement` class is updated. 
-If the agent is outside the platform, it activates the warning button and displays a warning message. 
-Otherwise, it deactivates the warning button.
+- `Update()`: the information displayed on the UI element is updated according to the computed results of the `Movement` class.
 
+    <details>
+    <summary>Click here to show/hide the <code>Update()</code> method...</summary>
+    <br>
 
-    ```
-    void Update()
-    {
-        if (movement.circleFound)
+    
+        void Update()
         {
-            circleInfoText.text = $"MinDistance: {movement.minDistance} \nRadius: {movement.radius}";
+            if (movement.circleFound)
+            {
+                circleInfoText.text = $"MinDistance: {movement.minDistance} \nRadius: {movement.radius}";
+            }
+
+            timeRemainingText.text = $"Time Remaining: {movement.changeInterval}\nTimer changed {movement.changeTimerCounter} times";       
+            closestFurthestVerText.text = $"ClosestVer: {movement.closestVertexName}\nFurthestVer: {movement.furthestVertexName}";
+
+            if (!movement.resizedPlatformBounds.Contains(movement.chController.transform.position))
+            {
+                warningButton.GetComponent<Image>().color = Color.black;
+                warningButton.gameObject.SetActive(true);
+                warningText.text = "Warning: The agent is outside the platform!";
+            }
+            else warningButton.gameObject.SetActive(false);        
         }
-
-        timeRemainingText.text = $"Time Remaining: {movement.changeInterval}\nTimer changed {movement.changeTimerCounter} times";       
-        closestFurthestVerText.text = $"ClosestVer: {movement.closestVertexName}\nFurthestVer: {movement.furthestVertexName}";
-
-        if (!movement.resizedPlatformBounds.Contains(movement.chController.transform.position))
-        {
-            warningButton.GetComponent<Image>().color = Color.black;
-            warningButton.gameObject.SetActive(true);
-            warningText.text = "Warning: The agent is outside the platform!";
+    </details>
+    
+    If the agent is outside the platform, the warning button is enabled and displays a warning message as can be seen below, otherwise it remains deactivated.
+    <style>
+        img {
+            width: 60%;
+            height: auto;
+            margin: 5px; 
         }
-        else warningButton.gameObject.SetActive(false);        
-    }
-    ```
-
-Finally, all the classes have been analysed, so it is worth having a summing up idea of the whole project
-and its functionalities, showing how it accomplishes the assigned task.
+        figcaption {
+            text-align: center;
+        }
+    </style>
+    <figure align="center";>
+        <img src="warning.png" alt="Warning game view">
+        <figcaption><i>Figure 5: game view displaying the warning alerting that the agent has overtaken the platform boundaries.</i></figcaption>
+    </figure>
 
 <div align="center">
 
 ## Summary
 </div>
 
-In the problem analysis chapter, there were identified several constraints to accomplish.
-Below there is a recap about how they have been addressed in this solution:
+Finally, all the classes have been analysed, so it is worth having a recap of the whole project, summing up how the constraints have been satisfied.
+In the problem analysis chapter, there were several constraints to be observed, so here is a recap about how they have been addressed in this solution:
 
 ### Movement
 <div align="center">
 <table>
   <tr>
-    <th>Problem</th>
+    <th>Constraint</th>
     <th>Solution</th>
   </tr>
   <tr>
@@ -566,7 +628,7 @@ Below there is a recap about how they have been addressed in this solution:
 <div align="center">
 <table>
   <tr>
-    <th>Problem</th>
+    <th>Constraint</th>
     <th>Solution</th>
   </tr>
   <tr>
@@ -584,7 +646,7 @@ Below there is a recap about how they have been addressed in this solution:
 <div align="center">
 <table>
   <tr>
-    <th>Problem</th>
+    <th>Constraint</th>
     <th>Solution</th>
   </tr>
   <tr>
@@ -594,6 +656,3 @@ Below there is a recap about how they have been addressed in this solution:
   </tr>
 </table>
 </div>
-
-# Some screenshots of the simulation...
-
