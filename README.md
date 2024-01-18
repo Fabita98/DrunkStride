@@ -40,20 +40,21 @@ The system must work independently on the platform shape or size.
 ## Problem analysis
 </div>
 
-Summing up the assignment text, it is possible to identify the following elements divided per category:
+Summing up the assignment text, it is possible to identify the following constraints, divided by category:
 ### Movement
 <ul>
     <li>The agent must move at a constant speed of 1 meter per second.</li>
     <li>The agent must move just along a circular line.</li>
-    <li>The agent must move first alternatively to the right/left each time the new trajectory is computed.</li>
+    <li>The agent must move alternatively to the right/left each time the new trajectory is computed.</li>
     <li>The agent must never stop moving.</li>
     <li>The agent must never fall off/move oustside the platform.</li>
+    <li>The range of values for the circle radius must be defined so that the agent do not overtake the platform.</li>
 </ul>
 
 ### Events
 <ul>
-	<li>The random intervals to change the timer and the new trajectories must be mutually independent.</li>
-    <li>The agent must change trajectory at random intervals in the [0: 10]\{0} range.</li>
+	<li>The random intervals to change the timer and the new trajectories computation must be mutually independent.</li>
+    <li>The agent must change trajectory at random intervals in the range defined as ]0: 10].</li>
 </ul>
 
 ### Platform        
@@ -75,9 +76,9 @@ when the simulation is running. A more detailed conceptual and technical analysi
 
 
 ### Environment
-To accomplish the task, an agent and a platform are required. It uses a `CharacterController` to move 
-the character along a circular path on a platform which is a plane randomly instantiated at the start of the game.
-These and the majority of the code has been developed in the `Movement.cs` script, analysed in the following.
+To accomplish the task, an agent and a platform are required. A `CharacterController` component is used to move 
+the character along a circular path on a platform, that is a plane randomly instantiated at the start of the game.
+This and most of the code was developed in the `Movement.cs` script, which is analysed below.
 
 ### Methods and variables
 
@@ -119,17 +120,17 @@ These and the majority of the code has been developed in the `Movement.cs` scrip
     internal string[] vertexNames = new string[4];
 </details>
 
-Divided per category, the variables are related to the agent/character, to the events such as the interval change time 
-for the next random range in `[0 : 10] \ {0}`, to the circumference and finally to the platform where the agent should move.
+Divided by category, the variables are related to the agent/character, to the events such as the computation of the next change time interval
+in the random range of ] 0: 10], to the circumference and finally to the platform where the agent should move.
 Since most of them are self-explanatory, the following will focus on the most important ones:
 1. `isMovingRight`: boolean used to check if the agent is moving to the right or to the left, 
 later exploited to make the agent move along `tangent/-tangent` direction.
 2. `isBelow, isRight`: booleans used to check if the agent is below or right the center of the platform.
 3. `circlePos[]`: array of the main points of a circle, used to check if it is entirely contained in the platform bounds.
-4. `radians[]`: array containing the values in radiants of the points used to check if the circle is inside/outside the platform.
+4. `radians[]`: array containing the values in radiants of the points used to check if a "candidate" circle is inside/outside the platform.
 5. `minX, maxX, minZ, maxZ`: floats used to store the minimum and maximum values of the x and z coordinates of the resized platform.
-6. `vertices[]`: array containing the vertices of the resized platform corners.
-7. `minDistance, maxDistance`: floats used to store the distances between the agent and the closest and furthest platform corners.
+6. `vertices[]`: array containing the corners of the resized platform.
+7. `minDistance, maxDistance`: floats used to store the distances between the agent and the closest/furthest platform corners.
     
 
 #### Methods
@@ -148,8 +149,7 @@ later exploited to make the agent move along `tangent/-tangent` direction.
     
     - `InstantiateRandomizedPlane()`: it computes the external and internal bounds of the platform where the circular paths will be computed,
         exploiting a slightly smaller plane than the original one to prevent the agent from going outside of it.
-        More specifically, it creates a new plane, assigns it a name, a tag and a layer, then it adds a mesh 
-        collider, a mesh renderer and the black color to it. 
+        More specifically, it creates a new plane, assigns it a name, a tag, a mesh collider, a mesh renderer and colours it black. 
         
         Thus, since the platform is supposed to be the same during the whole simulation, the plane is made static.
         After that, the size and the position of the plane are randomized on different ranges and the references to the plane 
@@ -166,7 +166,6 @@ later exploited to make the agent move along `tangent/-tangent` direction.
                 GameObject newPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
                 newPlane.name = "Platform";
                 newPlane.tag = "Floor";
-                newPlane.layer = LayerMask.NameToLayer("groundMask");
                 newPlane.isStatic = true;
 
                 // Add a MeshCollider to the plane
@@ -210,7 +209,7 @@ later exploited to make the agent move along `tangent/-tangent` direction.
 
     Then, there is a call to:
 
-    - `GetClosestAndFurthestVertex()`: first of all, it checks if the platform bounds are not null or empty, then it computes the minimum and maximum values for the x and z coordinates
+    - `GetClosestAndFurthestVertex()`: first of all, it checks if the platform bounds are not null or empty, then it retrieves the minimum and maximum values for the x and z coordinates
         of the resized platform previously defined in the method that randomizes the platform. After that, the method creates an array of vertices 
         and their names for printing and debugging purposes in order to find the closest and furthest vertices from the agent.
         The result of these operations define the maximum acceptable radius for the new circular paths,
@@ -268,7 +267,7 @@ later exploited to make the agent move along `tangent/-tangent` direction.
         </details>
 
 - `Update()`: starts with the `changeInterval` variable update.
-    Then, when the timer expires, the direction of the agent is changed through the boolean `isMovingRight`.
+    Then, when the timer expires, the movement direction of the agent is changed through the boolean `isMovingRight`.
 
     ```
     void Update()
@@ -307,7 +306,7 @@ later exploited to make the agent move along `tangent/-tangent` direction.
         }
         ```
 
-    - `SetCirclePosition()`: this is the most important method of the script because it is responsible for the computation of the new circle center position.
+    - `SetCirclePosition()`: this is the most important method of the script because it is responsible for the the new circle computation.
         It uses local variables to check if the maximum number of attempts to compute the new circle center is reached and to temporarily store the radius and the center 
         that will be eventually confirmed as definitive at the end of the loop, inserted in a `try-catch` statement to handle undesired behaviours. 
 
@@ -394,7 +393,7 @@ later exploited to make the agent move along `tangent/-tangent` direction.
         a valid circle is found or the maximum number of attempts is reached.
         Entering the loop if the starting conditions are satisfied, the method initializes the number of valid points to 0
         and the radius to a random value between 0.1 and the minimum distance computed in the `GetClosestAndFurthestVertex()` method.
-		Then, it creates an array of angles `radians[4]`, corresponding to the angles (0°, 90°, 180°, 270°)
+		Then, it creates an array of angles `radians[4]`, corresponding to the angles (0°, 90°, 180°, 270°) that is
         used to check if these main points of the current "candidate" circle are all contained in the resized platform bounds.
         If so, the number of valid points is incremented and if it reaches 4, the circle is found and the loop is exited. 
         Otherwise, the maximum number of attempts is decremented and the loop continues until the circle is found or the maximum number of attempts is reached.
@@ -448,8 +447,8 @@ later exploited to make the agent move along `tangent/-tangent` direction.
         }
         ```
         It moves the agent on the platform and along the circular path found in the previous steps. Here is computed the movement direction of the character,
-        considering the direction vector `dir` between him and the current circle center to obtain the tangent direction the agent will follow 
-        throughout the cross product between `dir` and `Vector3.up`, i.e., the plane normal.
+        considering the direction vector `dir` between him and the current circle center to obtain the final direction the agent will follow. 
+        This direction named `tangent` is obtained through the cross product between `dir` and `Vector3.up`, i.e., the plane normal .
 
         After that, the movement direction can only be the tangent or its opposite, observing the constraint of moving alternatively to the right/left.
 		Thus, the agent moves along the defined direction according to the already fixed speed of 1 m/s. 
@@ -573,7 +572,7 @@ More specifically:
     If the agent is outside the platform, the warning button is enabled and displays a warning message as can be seen below, otherwise it remains deactivated.
     <style>
         img {
-            width: 60%;
+            width: 80%;
             height: auto;
             margin: 5px; 
         }
@@ -583,7 +582,7 @@ More specifically:
     </style>
     <figure align="center";>
         <img src="warning.png" alt="Warning game view">
-        <figcaption><i>Figure 5: game view displaying the warning alerting that the agent has overtaken the platform boundaries.</i></figcaption>
+        <figcaption><i>Figure 5: game view displaying the warning message that the agent has overtaken the platform boundaries.</i></figcaption>
     </figure>
 
 <div align="center">
@@ -592,7 +591,7 @@ More specifically:
 </div>
 
 Finally, all the classes have been analysed, so it is worth having a recap of the whole project, summing up how the constraints have been satisfied.
-In the problem analysis chapter, there were several constraints to be observed, so here is a recap about how they have been addressed in this solution:
+In the problem analysis chapter, there were several constraints to be observed, so here is how they have been addressed in this solution:
 
 ### Movement
 <div align="center">
@@ -610,16 +609,20 @@ In the problem analysis chapter, there were several constraints to be observed, 
     <td><span style="color:green">Agent only moves along circular paths that are computed in a specific method.</span></td>
   </tr>
   <tr>
-    <td><span style="color:red">The agent must move first alternatively to the right/left each time the new trajectory is computed.</span></td>
-    <td><span style="color:green">Accomplished through the use of the boolean `IsMovingRight` which changes the movement direction of the agent along the tangent/-tangent direction along the circle to follow and each time that a new circumference is computed and confirmed. </span></td>
+    <td><span style="color:red">The agent must move alternatively to the right/left each time the new trajectory is computed.</span></td>
+    <td><span style="color:green">Accomplished through the use of the boolean `IsMovingRight` which changes the movement direction of the agent along the tangent/-tangent direction of the circle to follow and each time that a new circumference is computed and confirmed. </span></td>
   </tr>
   <tr>
     <td><span style="color:red">The agent must never stop moving.</span></td>
-    <td><span style="color:green">The simulation never stops and so does the agent, even if the limit case of max attempts to find a new circle is reached.</span></td>
+    <td><span style="color:green">The simulation never stops and so does the agent, even if the limit case of max attempts to find a new circle is occurring.</span></td>
   </tr>
   <tr>
     <td><span style="color:red">The agent must never fall off/move oustside the platform.</span></td>
     <td><span style="color:green">The computation of the new circular trajectories always checks whether or not the "candidate" circle is contained within the resized boundaries of the platform, ensuring that each final circular path is surely within those, if successfully found.</span></td>
+  </tr>
+  <tr>
+    <td><span style="color:red">The range of values for the circle radius must be defined so that the agent do not overtake the platform.</span></td>
+    <td><span style="color:green">The radius is always defined in the range [0.1: minDistance], where the minDistance is the distance between the agent and the closest corner of the platform.</span></td>
   </tr>
 </table>
 </div>
@@ -632,11 +635,11 @@ In the problem analysis chapter, there were several constraints to be observed, 
     <th>Solution</th>
   </tr>
   <tr>
-    <td><span style="color:red">The random intervals to change the timer and the new trajectories must be mutually independent.</span></td>
+    <td><span style="color:red">The random intervals to change the timer and the new trajectories computation must be mutually independent.</span></td>
     <td><span style="color:green">The methods implementing these functions are separate and occur one after the other without any kind of mutual conditioning.</span></td>
   </tr>
   <tr>
-    <td><span style="color:red">The agent must change trajectory at random intervals in the [0: 10]\{0} range.</span></td>
+    <td><span style="color:red">The agent must change trajectory at random intervals in the ]0: 10] range.</span></td>
     <td><span style="color:green">The mentioned range is [0.1 : 10].</span></td>
   </tr>
 </table>

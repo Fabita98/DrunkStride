@@ -229,7 +229,6 @@ public class Movement : MonoBehaviour
         GameObject newPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
         newPlane.name = "Platform";
         newPlane.tag = "Floor";
-        newPlane.layer = LayerMask.NameToLayer("groundMask");
         newPlane.isStatic = true;
 
         // Add a MeshCollider to the plane
